@@ -1,0 +1,89 @@
+{
+  "name": "@echarts/mcp-echarts-server",
+  "description": "A Model Context Protocol server for generating charts using Apache ECharts. Supports 16 core chart types with SVG server-side rendering, professional light/dark themes, and schema-driven validation. Features CLI testing and comprehensive MCP tool support.",
+  "mcpName": "io.github.echarts/mcp-echarts-server",
+  "version": "0.9.7",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "exports": {
+    "./sdk": "./build/sdk.js"
+  },
+  "scripts": {
+    "prebuild": "if exist build rmdir /s /q build",
+    "build": "tsc && tsc-alias -p tsconfig.json",
+    "postbuild": "echo Build completed",
+    "start": "npx @modelcontextprotocol/inspector node build/index.js",
+    "start:stdio": "node build/index.js",
+    "start:http": "node build/index.js --transport streamable --port 1122 --endpoint /mcp",
+    "start:sse": "node build/index.js --transport sse --port 1122 --endpoint /sse",
+    "test:charts": "npm run build && node test-charts.js",
+    "dev:stdio": "npm run build && npm run start:stdio",
+    "dev:http": "npm run build && npm run start:http",
+    "dev:sse": "npm run build && npm run start:sse",
+    "test:logging": "node test-logging.js",
+    "prepare": "husky && npm run build",
+    "prepublishOnly": "npm run build",
+    "test": "vitest"
+  },
+  "lint-staged": {
+    "*.{ts,js,json}": [
+      "biome check --write",
+      "biome format --write",
+      "biome lint"
+    ]
+  },
+  "bin": {
+    "mcp-echarts-server": "./build/index.js"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "echarts",
+    "mcp",
+    "data-visualization",
+    "chart",
+    "graph",
+    "apache"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/echarts/mcp-echarts-server"
+  },
+  "author": {
+    "name": "ECharts",
+    "url": "https://echarts.apache.org/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.4",
+    "@types/jsdom": "^27.0.0",
+    "canvas": "^3.2.0",
+    "cors": "^2.8.5",
+    "echarts": "^5.4.3",
+    "express": "^5.1.0",
+    "jsdom": "^27.0.1",
+    "puppeteer": "^21.5.2",
+    "zod": "^3.25.16",
+    "zod-to-json-schema": "3.24.6",
+    "zrender": "^5.4.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@modelcontextprotocol/inspector": "^0.16.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.21",
+    "@vitest/coverage-v8": "3.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
