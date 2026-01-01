@@ -1,8 +1,9 @@
 import { validateChart } from '../utils/validation.js';
 import { ValidationError, SchemaValidationError, UnsupportedChartError, AssetNotFoundError, SSRLimitationError } from '../utils/errors.js';
 import { buildChartOption, getSupportedCharts, getChartCapability } from '../charts/index.js';
+import { convertSvgToPngBase64, renderEChartsToPngBase64 } from '../utils/svgToPng.js';
 import * as echarts from 'echarts/core';
-import { SVGRenderer } from 'echarts/renderers';
+import { SVGRenderer, CanvasRenderer } from 'echarts/renderers';
 import {
   BarChart,
   LineChart,
@@ -38,6 +39,7 @@ import {
 // Register ECharts components for SVG SSR
 echarts.use([
   SVGRenderer,
+  CanvasRenderer,
   BarChart,
   LineChart,
   PieChart,
@@ -84,7 +86,7 @@ function renderEChartsToSVG(option: any, width: number, height: number, theme?: 
     grid: option.grid || {
       left: '10%',
       right: '10%',
-      top: option.title ? '15%' : '10%',
+      top: '10%',
       bottom: option.legend ? '15%' : '10%',
       containLabel: true
     }
@@ -118,27 +120,46 @@ export async function renderChart(args: any) {
     const height = chart.height || 600;
     
     // Build final option with proper structure
+    const themeColors = chart.theme === 'dark' ? 
+      { background: '#1a1a1a', text: '#ffffff' } : 
+      { background: '#ffffff', text: '#333333' };
+    
     const finalOption = {
-      title: chart.title ? { 
-        text: chart.title, 
-        left: 'center',
-        textStyle: { fontSize: 16, fontWeight: 'bold' }
-      } : undefined,
       tooltip: chart.showTooltip ? { 
         trigger: ['pie', 'funnel', 'gauge'].includes(chart.type) ? 'item' : 'axis',
-        backgroundColor: 'rgba(50,50,50,0.9)',
-        textStyle: { color: '#fff' }
+        backgroundColor: chart.theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
+        borderColor: chart.theme === 'dark' ? '#666666' : '#cccccc',
+        textStyle: { color: themeColors.text }
       } : undefined,
       legend: chart.showLegend ? { 
         bottom: 10,
-        textStyle: { fontSize: 12 }
+        textStyle: { fontSize: 12, color: themeColors.text }
       } : undefined,
-      backgroundColor: chart.theme === 'dark' ? '#1e1e1e' : '#ffffff',
+      backgroundColor: themeColors.background,
       ...chartOption
     };
 
     const svg = renderEChartsToSVG(finalOption, width, height, chart.theme);
     
+    // Handle output format
+    const outputFormat = chart.outputFormat ?? 'svg';
+    
+    if (outputFormat === 'png_base64') {
+      try {
+        const pngBase64 = renderEChartsToPngBase64(finalOption, width, height, chart.theme);
+        return {
+          content: [{
+            type: 'image',
+            mimeType: 'image/png',
+            data: pngBase64
+          }]
+        };
+      } catch (error) {
+        throw new SSRLimitationError('PNG generation failed', chart.type);
+      }
+    }
+    
+    // Default SVG output
     return {
       content: [{
         type: 'text',

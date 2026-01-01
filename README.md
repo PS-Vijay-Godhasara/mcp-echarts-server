@@ -45,11 +45,25 @@ Generate SVG charts with theme support
 {
   "type": "bar",
   "theme": "dark",
+  "outputFormat": "png_base64",
   "title": "Sales Data",
   "data": {
     "categories": ["Q1", "Q2", "Q3", "Q4"],
     "series": [{"name": "Sales", "values": [100, 150, 120, 180]}]
   }
+}
+```
+
+**Output Formats:**
+- `svg` (default): Returns SVG as text
+- `png_base64`: Returns PNG as MCP image content
+
+**PNG Base64 Response:**
+```json
+{
+  "type": "image",
+  "mimeType": "image/png",
+  "data": "iVBORw0KGgoAAAANSUhEUgAA..."
 }
 ```
 
@@ -106,19 +120,24 @@ npm run test:charts -- bar
 # Dark theme
 npm run test:charts -- line --theme=dark
 npm run test:charts -- pie --theme=dark
+
+# PNG Base64 output
+npm run test:charts -- line --format=png_base64
+npm run test:charts -- bar --theme=dark --format=png_base64
 ```
 
 ### Test All Charts
 ```bash
-# All charts, light theme
+# All charts, light theme, SVG
 npm run test:charts -- --all
 
-# All charts, dark theme
-npm run test:charts -- --all --theme=dark
+# All charts, dark theme, PNG
+npm run test:charts -- --all --theme=dark --format=png_base64
 ```
 
 ### Output
-Charts are saved as SVG files: `test-{chartType}-{theme}.svg`
+- SVG files: `test-{chartType}-{theme}.svg`
+- PNG files: `test-{chartType}-{theme}.png`
 
 ## 📈 Chart Examples
 

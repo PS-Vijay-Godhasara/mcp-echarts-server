@@ -15,6 +15,7 @@ export const BaseChartSchema = z.object({
   width: z.number().min(200).max(4000).default(800),
   height: z.number().min(200).max(4000).default(600),
   theme: z.enum(['light', 'dark']).default('light'),
+  outputFormat: z.enum(['svg', 'png_base64']).default('svg'),
   showTooltip: z.boolean().default(true),
   showLegend: z.boolean().default(true)
 });

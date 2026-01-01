@@ -10,6 +10,7 @@ export async function getCapabilities() {
 
   const capabilities = {
     renderers: ['svg'],
+    outputFormats: ['svg', 'png_base64'],
     chartTypes: chartCapabilities,
     maxSize: {
       width: 4000,
@@ -19,7 +20,8 @@ export async function getCapabilities() {
       animations: false,
       interactions: false,
       themes: ['light', 'dark'],
-      serverSideRendering: true
+      serverSideRendering: true,
+      pngConversion: 'svg_to_png'
     },
 
     supportMatrix: {

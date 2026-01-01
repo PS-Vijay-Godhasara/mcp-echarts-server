@@ -7,26 +7,30 @@ const args = process.argv.slice(2);
 const allCharts = args.includes('--all');
 const themeArg = args.find(arg => arg.startsWith('--theme='));
 const theme = themeArg ? themeArg.split('=')[1] : 'light';
+const formatArg = args.find(arg => arg.startsWith('--format='));
+const outputFormat = formatArg ? formatArg.split('=')[1] : 'svg';
 const chartType = args.find(arg => !arg.startsWith('--'));
 
 if (!chartType && !allCharts) {
-  console.log('Usage: npm run test:charts -- [chart-type] [--theme=light|dark] [--all]');
+  console.log('Usage: npm run test:charts -- [chart-type] [--theme=light|dark] [--format=svg|png_base64] [--all]');
   console.log('Examples:');
   console.log('  npm run test:charts -- line');
   console.log('  npm run test:charts -- bar --theme=dark');
+  console.log('  npm run test:charts -- pie --format=png_base64');
   console.log('  npm run test:charts -- --all');
-  console.log('  npm run test:charts -- --all --theme=dark');
+  console.log('  npm run test:charts -- --all --theme=dark --format=png_base64');
   process.exit(1);
 }
 
-const getTestData = (chartType, theme = 'light') => {
+const getTestData = (chartType, theme = 'light', outputFormat = 'svg') => {
   const testDataMap = {
     line: {
       type: chartType,
       width: 800,
       height: 400,
       theme,
-      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${theme.charAt(0).toUpperCase() + theme.slice(1)} Theme`,
+      outputFormat,
+      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
       data: { 
         categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], 
         series: [
@@ -42,7 +46,8 @@ const getTestData = (chartType, theme = 'light') => {
       width: 800,
       height: 400,
       theme,
-      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${theme.charAt(0).toUpperCase() + theme.slice(1)} Theme`,
+      outputFormat,
+      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
       data: { 
         categories: ['Q1', 'Q2', 'Q3', 'Q4'], 
         series: [
@@ -58,7 +63,8 @@ const getTestData = (chartType, theme = 'light') => {
       width: 800,
       height: 400,
       theme,
-      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart - ${theme.charAt(0).toUpperCase() + theme.slice(1)} Theme`,
+      outputFormat,
+      title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
       data: [
         { name: 'Desktop', value: 1048 }, 
         { name: 'Mobile', value: 735 },
@@ -275,19 +281,38 @@ const getTestData = (chartType, theme = 'light') => {
   return testDataMap[chartType] || testDataMap.line;
 };
 
-async function testSingleChart(chartType, theme) {
-  console.log(`Testing ${chartType} chart with ${theme} theme...`);
+async function testSingleChart(chartType, theme, outputFormat) {
+  console.log(`Testing ${chartType} chart with ${theme} theme, ${outputFormat} format...`);
   
   try {
-    const chartData = getTestData(chartType, theme);
+    const chartData = getTestData(chartType, theme, outputFormat);
     const result = await renderChart({ chart: chartData });
     
-    if (result.content?.[0]?.text) {
-      const svg = result.content[0].text;
-      const filename = `test-${chartType}-${theme}.svg`;
-      writeFileSync(filename, svg);
-      console.log(`✅ Generated ${filename}`);
-      return true;
+    if (result.content?.[0]) {
+      const content = result.content[0];
+      
+      if (outputFormat === 'png_base64') {
+        if (content.type === 'image' && content.mimeType === 'image/png' && content.data) {
+          const filename = `test-${chartType}-${theme}.png`;
+          const pngBuffer = Buffer.from(content.data, 'base64');
+          writeFileSync(filename, pngBuffer);
+          console.log(`✅ Generated ${filename}`);
+          return true;
+        } else {
+          console.log('❌ Error: Invalid PNG response format');
+          return false;
+        }
+      } else {
+        if (content.type === 'text' && content.text) {
+          const filename = `test-${chartType}-${theme}.svg`;
+          writeFileSync(filename, content.text);
+          console.log(`✅ Generated ${filename}`);
+          return true;
+        } else {
+          console.log('❌ Error: Invalid SVG response format');
+          return false;
+        }
+      }
     }
     console.log("❌ Error: No content returned");
     return false;
@@ -297,14 +322,14 @@ async function testSingleChart(chartType, theme) {
   }
 }
 
-async function testAllCharts(theme) {
+async function testAllCharts(theme, outputFormat) {
   const supportedCharts = getSupportedCharts();
-  console.log(`Testing all ${supportedCharts.length} charts with ${theme} theme...\n`);
+  console.log(`Testing all ${supportedCharts.length} charts with ${theme} theme, ${outputFormat} format...\n`);
   
   let successCount = 0;
   
   for (const chartType of supportedCharts) {
-    const success = await testSingleChart(chartType, theme);
+    const success = await testSingleChart(chartType, theme, outputFormat);
     if (success) successCount++;
   }
   
@@ -314,7 +339,7 @@ async function testAllCharts(theme) {
 
 // Main execution
 if (allCharts) {
-  testAllCharts(theme).catch(console.error);
+  testAllCharts(theme, outputFormat).catch(console.error);
 } else if (chartType) {
   const supportedCharts = getSupportedCharts();
   if (!supportedCharts.includes(chartType)) {
@@ -322,5 +347,5 @@ if (allCharts) {
     console.log(`Supported types: ${supportedCharts.join(', ')}`);
     process.exit(1);
   }
-  testSingleChart(chartType, theme).catch(console.error);
+  testSingleChart(chartType, theme, outputFormat).catch(console.error);
 }
